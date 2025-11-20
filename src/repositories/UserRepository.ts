@@ -38,7 +38,7 @@ class UserRepository {
 
     async login(userData: User) {
         const user = await this.database.find({ email: userData.email.toLowerCase() });
-        if (!user) throw new HttpError(401, 'Incorrect email.');
+        if (!user) throw new HttpError(401, "A user with this email doesn't exists.");
 
         const passwordCompare = await bcrypt.compare(userData.password, user.password);
         if (!passwordCompare) throw new HttpError(401, 'Incorrect password.');

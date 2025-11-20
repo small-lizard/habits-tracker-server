@@ -34,13 +34,13 @@ export default class MongoRepository<T> implements IRepository<T> {
     }
 
     async update(id: string, data: Partial<T>) {
-        const updated = await this.model.findByIdAndUpdate(id, data, { new: true });
+        const updated = await this.model.findOneAndUpdate({ id }, data, { new: true });
         if (!updated) throw new Error('Document not found');
         return this.serialiseDocument(updated);
     }
 
     async delete(id: string) {
-        const deleted = await this.model.findByIdAndDelete(id);
+        const deleted = await this.model.findOneAndDelete({ id });
         if (!deleted) throw new Error('Document not found');
         return this.serialiseDocument(deleted);
     }

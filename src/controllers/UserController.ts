@@ -3,7 +3,7 @@ import UserRepository from "../repositories/UserRepository";
 import { Session } from "express-session";
 
 interface SessionRequest extends Request {
-  session: Session & { userId?: string };
+    session: Session & { userId?: string };
 }
 
 class UserController {
@@ -17,7 +17,7 @@ class UserController {
         try {
             const user = await this.userRepository.addUser(req.body);
             (req as SessionRequest).session.userId = user._id;
-            res.status(200).json({ message: 'User created and logged in', userId: user._id});
+            res.status(200).json({ message: 'User created and logged in', userId: user._id, name: user.name });
         } catch (error) {
             console.error(error);
             const err = error as Error & { status?: number };
@@ -30,13 +30,14 @@ class UserController {
             const user = await this.userRepository.login(req.body);
             (req as SessionRequest).session.userId = user._id;
 
-            res.status(200).json({ message: 'Successful login', userId: user._id });
+            res.status(200).json({ message: 'Successful login', userId: user._id, name: user.name });
         } catch (error) {
             console.error(error);
             const err = error as Error & { status?: number };
             res.status(err.status || 500).json({ message: err.message });
         }
     }
+
 
     changePassword = async (req: Request, res: Response) => {
         try {
@@ -56,6 +57,7 @@ class UserController {
     logout = async (req: Request, res: Response) => {
         req.session.destroy((err?: Error) => {
             if (err) {
+                console.log('destroy callback, err:', err);
                 console.error(err);
                 return res.status(500).json({ message: 'Logout failed' });
             }
@@ -69,7 +71,7 @@ class UserController {
             const userId = (req as SessionRequest).session.userId;
             if (!userId) return res.status(401).json({ message: 'Not logged in' });
 
-            await this.userRepository.delete( userId );
+            await this.userRepository.delete(userId);
 
             req.session.destroy((err?: Error) => {
                 if (err) {
@@ -83,6 +85,14 @@ class UserController {
             console.error(error);
             const err = error as Error & { status?: number };
             res.status(err.status || 500).json({ message: err.message });
+        }
+    }
+
+    checkIsAuth = async (req: Request, res: Response) => {
+        if ((req as SessionRequest).session.userId ) {
+            res.json({ isAuth: true, userId: (req as SessionRequest).session.userId });
+        } else {
+            res.json({ isAuth: false });
         }
     }
 }

@@ -46,19 +46,29 @@ class UserRepository {
         return user;
     }
 
-    async changePassword(id: string, password: string ) {
+    async changePassword(id: string, userData: { password: string, newPassword: string }) {
+        const user = await this.database.find({ _id: id });
+        if (!user) throw new HttpError(404, 'User not found');
+
+        const passwordCompare = await bcrypt.compare(userData.password, user.password);
+        if (!passwordCompare) throw new HttpError(401, 'Incorrect password.');
+
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(userData.newPassword, salt);
 
         const updatedUser = await this.database.update(id, { password: hashedPassword });
-        if (!updatedUser) throw new HttpError(404, 'User not found.');
 
         return updatedUser;
     }
 
-    async delete(id: string ) {
-        if (!id) throw new HttpError(401, 'User id is required');
-        return this.database.delete(id);
+    async delete(userId: string) {
+        if (!userId) throw new HttpError(401, 'User id is required');
+        return this.database.delete(userId);
+    }
+
+    async checkIsAuth(userId: string) {
+        const user = await this.database.find({ _id: userId });
+        return user;
     }
 }
 

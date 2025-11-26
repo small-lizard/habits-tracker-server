@@ -19,19 +19,24 @@ class HabitRepository {
     }
 
     async updateHabit(habitData: any) {
-        const updatedHabit = await this.database.update(habitData.id, habitData);
+        const updatedHabit = await this.database.update(habitData._id, habitData);
         return updatedHabit;
     }
 
     async delete(id: string) {
-        const doc = await this.database.find({id});
+        const doc = await this.database.find({ id });
         if (!doc) throw new Error('Document not found');
-        
+
         return this.database.delete(doc.id);
     }
 
-    async getByUser() {
-        return this.database.getAll();
+    async getByUser(userId: string) {
+        const docs = await this.database.getAll(userId)
+        return docs;
+    }
+    
+    async deleteAllByUserId(userId: string) {
+        return this.database.deleteAllById?.(userId);
     }
 }
 

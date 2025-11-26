@@ -17,9 +17,13 @@ const app = express();
 const port = 5000;
 
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
-const userController = new UserController({ userRepository });
-
 const habitRepository = new HabitRepository(new MongoRepository<any>(HabitModel));
+
+const userController = new UserController({ 
+    userRepository, 
+    habitRepository 
+});
+
 const habitController = new HabitController({ habitRepository });
 
 app.use(cors({

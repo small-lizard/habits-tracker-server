@@ -44,7 +44,7 @@ class HabitController {
         try {
             const userId = (req as SessionRequest).session.userId;
             if (!userId) throw new Error()
-            const habits = await this.habitRepository.getByUser();
+            const habits = await this.habitRepository.getByUser(userId);
             res.status(200).json(habits);
         } catch (err) {
             console.error(err);
@@ -75,7 +75,7 @@ class HabitController {
             const userId = (req as SessionRequest).session.userId;
             if (!userId) return res.status(401).json({ message: 'Not logged in' });
 
-            const habit = await this.habitRepository.delete(req.params.id);
+            const habit = await this.habitRepository.delete(req.params._id);
             res.status(200).json(habit);
         } catch (error) {
             console.error(error);

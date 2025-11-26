@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 
 const userSchema = new Schema({
+  _id: { type: String, required: true },
   name: { type: String, required: true },
   email: { 
     type: String, 
@@ -11,8 +12,9 @@ const userSchema = new Schema({
   },
   password: { type: String, required: true }
 }, {
-  versionKey: false
-});
+  versionKey: false,
+  _id: false
+},);
 
 const UserModel = mongoose.model('User', userSchema, 'users');
 

@@ -1,9 +1,9 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { InferSchemaType, Schema } from 'mongoose';
 
 const habitSchema = new Schema(
   {
     userId: { type: String, required: true },
-    _id: { type: String, required: true },
+    id: { type: String, required: true },
     name: { type: String, required: true },
     template: {
       type: [Boolean],
@@ -18,4 +18,6 @@ const habitSchema = new Schema(
   _id: false
 },);
 
-export default mongoose.model('Habit', habitSchema, 'habits');
+export type Habit = InferSchemaType<typeof habitSchema>;
+
+export const HabitModel = mongoose.model<Habit>('Habit', habitSchema);

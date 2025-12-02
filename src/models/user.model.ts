@@ -1,7 +1,7 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { InferSchemaType, Schema } from 'mongoose';
 
 const userSchema = new Schema({
-  _id: { type: String, required: true },
+  id: { type: String, required: true },
   name: { type: String, required: true },
   email: { 
     type: String, 
@@ -16,7 +16,7 @@ const userSchema = new Schema({
   _id: false
 },);
 
-const UserModel = mongoose.model('User', userSchema, 'users');
+export type User = InferSchemaType<typeof userSchema>;
 
-export default UserModel;
+export const UserModel = mongoose.model<User>('User', userSchema);
 

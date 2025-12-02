@@ -1,42 +1,32 @@
 import { IRepository } from './IRepository';
-import HttpError from '../utils/HttpError';
+import { Habit} from '../models/habit.model';
 
 class HabitRepository {
 
-    private database: IRepository<any>;
+    private repository: IRepository<Habit>;
 
-    constructor(database: IRepository<any>) {
-        this.database = database;
+    constructor(repository: IRepository<Habit>) {
+        this.repository = repository;
     }
 
-    async addHabit(habitData: any) {
-        if (!habitData.userId) {
-            throw new HttpError(400, 'UserId is required');
-        }
-
-        const createdHabit = await this.database.save(habitData);
-        return createdHabit;
+    public async addHabit(habitData: Habit) {
+        return await this.repository.save(habitData);
     }
 
-    async updateHabit(habitData: any) {
-        const updatedHabit = await this.database.update(habitData._id, habitData);
-        return updatedHabit;
+    public async updateHabit(habitData: Habit) {
+        return await this.repository.update(habitData.id, habitData);
     }
 
-    async delete(id: string) {
-        const doc = await this.database.find({ id });
-        if (!doc) throw new Error('Document not found');
-
-        return this.database.delete(doc.id);
+    public async delete(id: string) {
+        return await this.repository.delete(id);
     }
 
-    async getByUser(userId: string) {
-        const docs = await this.database.getAll(userId)
-        return docs;
+    public async getByUser(userId: string) {
+        return await this.repository.getAll(userId)
     }
     
-    async deleteAllByUserId(userId: string) {
-        return this.database.deleteAllById?.(userId);
+    public async deleteAllByUserId(userId: string) {
+        return this.repository.deleteAllById(userId);
     }
 }
 

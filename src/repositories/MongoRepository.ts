@@ -13,17 +13,24 @@ export default class MongoRepository<T> implements IRepository<T> {
             throw new Error('Document not found');
         }
 
+        const mapDoc = (document: Document) => {
+            const obj = document.toObject();
+            obj.id = obj._id.toString();
+            delete obj._id;
+            return obj;
+        };
+
         if (Array.isArray(input)) {
-            return input.map(document => ({ ...document.toObject(), id: document.id.toString() }));
+            return input.map(mapDoc);
         }
 
-        return { ...input.toObject(), id: input.id.toString() };
+        return mapDoc(input);
     }
 
     async find(query: Partial<T>) {
         const document = await this.model.findOne(query);
 
-        return this.serialiseDocument(document);
+        return document;
     }
 
     async getAll(userId: string) {
@@ -33,13 +40,21 @@ export default class MongoRepository<T> implements IRepository<T> {
     }
 
     async save(data: T) {
-        const document = await this.model.create(data);
+        const { id } = data as { id: string };
+
+        const dataInfo = {
+            ...data,
+            _id: id
+        }
+
+        const document = await this.model.create(dataInfo);
 
         return this.serialiseDocument(document);
     }
 
+
     async findById(id: string) {
-        const document = await this.model.find({ id: id });
+        const document = await this.model.find({_id: id});
 
         return this.serialiseDocument(document);
     }

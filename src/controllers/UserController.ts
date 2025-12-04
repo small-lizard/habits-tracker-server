@@ -23,7 +23,7 @@ class UserController {
     }
 
     public addUser = async (req: Request, res: Response) => {
-        const existingUser = await this.userRepository.findUser(req.body.email.toLowerCase());
+        const existingUser = await this.userRepository.findUserByEmail(req.body.email.toLowerCase());
         if (existingUser) {
             return res.status(400).json({ error: 'A user with this email already exists.' });
         }
@@ -53,7 +53,7 @@ class UserController {
     public login = async (req: Request, res: Response) => {
         const user = req.body;
 
-        const existingUser = await this.userRepository.findUser(user.id);
+        const existingUser = await this.userRepository.findUserByEmail(req.body.email.toLowerCase());
         if (!existingUser) {
             return res.status(401).json({ error: "A user with this email doesn't exists." });
         }
@@ -86,7 +86,7 @@ class UserController {
         const user = req.body;
         const userId = (req as SessionRequest).session.userId as string;
 
-        const existingUser = await this.userRepository.findUser(user.id);
+        const existingUser = await this.userRepository.findUserById(user.id);
         if (!existingUser) {
             return res.status(401).json({ error: 'User not found' });
         }
@@ -109,7 +109,7 @@ class UserController {
     public logout = async (req: Request, res: Response) => {
         req.session.destroy(err => {
             if (err) {
-                return res.status(500).json({ message: 'Logout failed' });
+                return res.status(500).json({ error: 'Logout failed' });
             }
             res.clearCookie('connect.sid');
             res.json({ message: 'Successfully logged out' });
@@ -126,7 +126,7 @@ class UserController {
 
             req.session.destroy(err => {
                 if (err) {
-                    return res.status(500).json({ message: 'Account deleted, but logout failed' });
+                    return res.status(500).json({ error : 'Account deleted, but logout failed' });
                 }
                 res.clearCookie('connect.sid');
                 res.status(200).json({ message: 'Account deleted and logged out', userId: userId });
@@ -144,13 +144,13 @@ class UserController {
         }
 
         try {
-            const user = await this.userRepository.findUser(userId);
+            const user = await this.userRepository.findUserById(userId);
 
             if (!user) {
                 return res.json({ isAuth: false });
             }
 
-            res.json({ isAuth: true, userId, user });
+            res.json({ isAuth: true, userId, name: user.name, email: user.email });
         } catch (err) {
             res.json({ isAuth: false });
         }

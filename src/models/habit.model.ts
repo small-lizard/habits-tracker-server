@@ -14,9 +14,7 @@ const habitSchema = new Schema(
       type: Object as () => Record<string, number[]>,
       default: {},
     }
-  }, {
-  _id: false
-},);
+  });
 
 export type Habit = InferSchemaType<typeof habitSchema>;
 

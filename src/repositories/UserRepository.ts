@@ -9,8 +9,12 @@ class UserRepository {
         this.repository = repository;
     }
 
-    public async findUser(id: string) {
-        return await this.repository.find({ id: id })
+    public async findUserById(id: string) {
+        return await this.repository.find({id : id})
+    }
+
+    public async findUserByEmail(email: string) {
+        return await this.repository.find({email: email})
     }
 
     public async addUser(userData: User) {
@@ -19,14 +23,14 @@ class UserRepository {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = {
-            password: hashedPassword,
             ...rest,
+            password: hashedPassword,
         };
 
         return this.repository.save(newUser);
     }
 
-    public async changePassword(id: string, newPassword: string ) {
+    public async changePassword(id: string, newPassword: string) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 

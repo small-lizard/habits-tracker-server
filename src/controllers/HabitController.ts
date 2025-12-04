@@ -68,15 +68,15 @@ class HabitController {
     public sync = async (req: Request, res: Response) => {
         const userId = (req as SessionRequest).session.userId as string;
         const habits = req.body.habits;
-        
+
         if (!habits || habits.length === 0) {
             return res.status(400).json({ error: 'No habits provided' });
         }
 
         try {
-            await Promise.all(
-                habits.map((habit: Habit) => this.habitRepository.addHabit({ ...habit, userId }))
-            );
+            for (const habit of habits) {
+                await this.habitRepository.addHabit({ ...habit, userId })
+            }
 
             res.status(200).json({ userId });
 

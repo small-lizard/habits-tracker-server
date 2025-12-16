@@ -15,7 +15,9 @@ import { requireAuth } from './middlewares/authMiddleware';
 dotenv.config();
 
 const app = express();
-const port = 5000;
+const port = Number(process.env.PORT);
+const mongoUrl = process.env.MONGO_URL as string;
+const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
 
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
 const habitRepository = new HabitRepository(new MongoRepository<Habit>(HabitModel));
@@ -28,7 +30,7 @@ const userController = new UserController({
 const habitController = new HabitController({ habitRepository });
 
 app.use(cors({
-  origin: 'http://192.168.100.3:3000',
+  origin: process.env.CLIENT_URL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
   credentials: true
@@ -47,7 +49,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: 'mongodb://localhost:27017/test',
+    mongoUrl: mongoUrl,
     collectionName: 'sessions',
   }),
   cookie: {
@@ -59,7 +61,19 @@ app.use(session({
   rolling: true,
 }))
 
-mongoose.connect('mongodb://localhost:27017/test')
+if(!mongoUrl) {
+  throw new Error ('Incorrect url for MongoDB')
+}
+
+if(!host) {
+  throw new Error ('Incorrect host url')
+}
+
+if(!port) {
+  throw new Error ('Incorrect port')
+}
+
+mongoose.connect(mongoUrl)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
@@ -79,7 +93,7 @@ app.delete('/habits/delete/:id',requireAuth, habitController.delete);
 app.post('/habits/sync',requireAuth, habitController.sync);
 app.get('/habits',requireAuth, habitController.getHabits);
 
-app.listen(port, '0.0.0.0', () => {
+app.listen(port, host, () => {
   console.log(`Server running on port ${port}`);
 });
 

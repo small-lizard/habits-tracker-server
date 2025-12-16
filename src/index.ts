@@ -28,7 +28,7 @@ const userController = new UserController({
 const habitController = new HabitController({ habitRepository });
 
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'http://192.168.100.3:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
   credentials: true
@@ -79,6 +79,7 @@ app.delete('/habits/delete/:id',requireAuth, habitController.delete);
 app.post('/habits/sync',requireAuth, habitController.sync);
 app.get('/habits',requireAuth, habitController.getHabits);
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
 });
+

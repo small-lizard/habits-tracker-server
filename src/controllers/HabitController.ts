@@ -1,13 +1,12 @@
 import { Request, Response } from "express";
-import HabitRepository from "../repositories/HabitRepository";
+import { HabitRepository } from "@repositories/HabitRepository.js";
 import { Session } from "express-session";
-import { Habit } from "../models/habit.model";
 
 type SessionRequest = Request & {
     session: Session & { userId?: string };
 };
 
-class HabitController {
+export class HabitController {
     private habitRepository: HabitRepository;
 
     constructor({ habitRepository }: { habitRepository: HabitRepository }) {
@@ -64,28 +63,5 @@ class HabitController {
             res.status(500).json({ error: 'Internal server error' });
         }
     }
-
-    public sync = async (req: Request, res: Response) => {
-        const userId = (req as SessionRequest).session.userId as string;
-        const habits = req.body.habits;
-
-        if (!habits || habits.length === 0) {
-            return res.status(400).json({ error: 'No habits provided' });
-        }
-
-        try {
-            for (const habit of habits) {
-                await this.habitRepository.addHabit({ ...habit, userId })
-            }
-
-            res.status(200).json({ userId });
-
-        } catch (error) {
-
-            res.status(500).json({ error: 'Internal server error' });
-        }
-    }
 }
-
-export default HabitController;
 

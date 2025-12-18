@@ -1,7 +1,7 @@
-import { IRepository } from './IRepository';
-import { Habit} from '../models/habit.model';
+import { IRepository } from '@repositories/IRepository.js';
+import { Habit } from '@models/habit.model.js';
 
-class HabitRepository {
+export class HabitRepository {
 
     private repository: IRepository<Habit>;
 
@@ -24,10 +24,14 @@ class HabitRepository {
     public async getByUser(userId: string) {
         return await this.repository.getAll(userId)
     }
-    
+
     public async deleteAllByUserId(userId: string) {
         return this.repository.deleteAllById(userId);
     }
-}
 
-export default HabitRepository;
+    public async sync(userId: string, habits: Habit[]) {
+        for (const habit of habits) {
+            await this.repository.save({ ...habit, userId })
+        }
+    }
+}

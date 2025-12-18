@@ -1,7 +1,7 @@
-import { IRepository } from './IRepository';
+import { IRepository } from '@repositories/IRepository.js';
 import { Document, Model } from 'mongoose';
 
-export default class MongoRepository<T> implements IRepository<T> {
+export class MongoRepository<T> implements IRepository<T> {
     private model: Model<T>;
 
     constructor(model: Model<T>) {

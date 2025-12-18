@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
-import { IRepository } from './IRepository';
-import { User } from "../models/user.model";
+import { IRepository } from '@repositories/IRepository.js';
+import { User } from "@models/user.model.js";
 
-class UserRepository {
+export class UserRepository {
     private repository: IRepository<User>;
 
     constructor(repository: IRepository<User>) {
@@ -43,5 +43,3 @@ class UserRepository {
         return this.repository.delete(userId);
     }
 }
-
-export default UserRepository;

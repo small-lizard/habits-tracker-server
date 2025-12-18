@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import UserRepository from "../repositories/UserRepository";
+import { UserRepository } from "@repositories/UserRepository.js";
 import { Session } from "express-session";
-import HabitRepository from "../repositories/HabitRepository";
+import { HabitRepository } from "@repositories/HabitRepository.js";
 import bcrypt from 'bcryptjs';
 
 type SessionRequest = Request & {
@@ -13,7 +13,7 @@ type UserControllerDeps = {
     habitRepository: HabitRepository;
 };
 
-class UserController {
+export class UserController {
     private userRepository: UserRepository;
     private habitRepository: HabitRepository;
 
@@ -23,13 +23,20 @@ class UserController {
     }
 
     public addUser = async (req: Request, res: Response) => {
-        const existingUser = await this.userRepository.findUserByEmail(req.body.email.toLowerCase());
+         const userData = {
+            id: req.body.id,
+            name: req.body.name,
+            email: req.body.email,
+            password: req.body.password
+        }
+
+        const existingUser = await this.userRepository.findUserByEmail(userData.email.toLowerCase());
         if (existingUser) {
             return res.status(400).json({ error: 'A user with this email already exists.' });
         }
 
         try {
-            const user = await this.userRepository.addUser(req.body);
+            const user = await this.userRepository.addUser(userData);
 
             const sessionReq = req as SessionRequest;
             sessionReq.session.userId = user.id;
@@ -38,11 +45,17 @@ class UserController {
                 sessionReq.session.save(err => err ? reject(err) : resolve());
             });
 
+            const habits = req.body.habits;
+
+            if (habits?.length) {
+                await this.habitRepository.sync(user.id, habits);
+            }
+
             res.status(200).json({
                 message: 'User created and logged in',
                 userId: user.id,
                 name: user.name,
-                email: user.email
+                email: user.email,
             });
 
         } catch (error) {
@@ -51,9 +64,12 @@ class UserController {
     }
 
     public login = async (req: Request, res: Response) => {
-        const user = req.body;
+        const user = {
+            email: req.body.email,
+            password: req.body.password
+        }
 
-        const existingUser = await this.userRepository.findUserByEmail(req.body.email.toLowerCase());
+        const existingUser = await this.userRepository.findUserByEmail(user.email.toLowerCase());
         if (!existingUser) {
             return res.status(401).json({ error: "A user with this email doesn't exists." });
         }
@@ -71,6 +87,12 @@ class UserController {
                 sessionReq.session.save(err => err ? reject(err) : resolve());
             });
 
+            const habits = req.body.habits;
+
+            if (habits?.length) {
+                await this.habitRepository.sync(existingUser.id, habits);
+            }
+
             res.status(200).json({
                 message: 'Successful login',
                 userId: existingUser.id,
@@ -86,7 +108,7 @@ class UserController {
         const user = req.body;
         const userId = (req as SessionRequest).session.userId as string;
 
-        const existingUser = await this.userRepository.findUserById(user.id);
+        const existingUser = await this.userRepository.findUserById(userId);
         if (!existingUser) {
             return res.status(401).json({ error: 'User not found' });
         }
@@ -126,7 +148,7 @@ class UserController {
 
             req.session.destroy(err => {
                 if (err) {
-                    return res.status(500).json({ error : 'Account deleted, but logout failed' });
+                    return res.status(500).json({ error: 'Account deleted, but logout failed' });
                 }
                 res.clearCookie('connect.sid');
                 res.status(200).json({ message: 'Account deleted and logged out', userId: userId });
@@ -157,5 +179,4 @@ class UserController {
     }
 }
 
-export default UserController;
 

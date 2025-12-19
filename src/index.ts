@@ -30,9 +30,8 @@ const userController = new UserController({
 const habitController = new HabitController({ habitRepository });
 
 app.use(cors({
-  origin: 'https://habits-tracker-dusky.vercel.app',
+  origin: 'https://habits-tracker-dev.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type'],
   credentials: true
 }));
 
@@ -57,8 +56,8 @@ app.use(session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 3,
     secure: true,
-    sameSite: 'none',
-    httpOnly: true
+    httpOnly: true,
+    sameSite: 'none'
   },
   rolling: true,
 }))
@@ -71,7 +70,7 @@ if (!host) {
   throw new Error('Incorrect host url')
 }
 
-if (!mongoUrl) {
+if (!port) {
   throw new Error('Incorrect port')
 }
 

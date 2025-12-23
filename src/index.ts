@@ -15,6 +15,7 @@ import { requireAuth } from '@middlewares/authMiddleware.js';
 dotenv.config();
 
 const app = express();
+
 const port = Number(process.env.PORT);
 const mongoUrl = process.env.MONGO_URL as string;
 const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
@@ -29,8 +30,14 @@ const userController = new UserController({
 
 const habitController = new HabitController({ habitRepository });
 
+const frontURL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : 'https://habits-tracker-dev.vercel.app';
+
+  console.log(frontURL)
+
 app.use(cors({
-  origin: 'https://habits-tracker-dev.vercel.app',
+  origin: frontURL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -55,9 +62,9 @@ app.use(session({
   }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 3,
-    secure: true,
+    secure: process.env.NODE_ENV === 'development' ? false : true,
     httpOnly: true,
-    sameSite: 'none'
+    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
   },
   rolling: true,
 }))

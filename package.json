@@ -1,27 +1,27 @@
 {
   "type": "module",
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.18.2",
+    "@types/node": "^25.0.3",
     "bcryptjs": "^3.0.3",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
-    "mongoose": "^8.19.3"
+    "mongoose": "^8.19.3",
+    "tsc-alias": "^1.8.16"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.5",
-    "@types/express-session": "^1.18.2",
-    "@types/node": "^24.10.0",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   },
   "scripts": {
-   "dev": "concurrently \"tsc --watch --preserveWatchOutput\" \"tsc-alias --watch\" \"nodemon dist/index.js\"",
+    "dev": "concurrently \"tsc --watch --preserveWatchOutput\" \"tsc-alias --watch\" \"nodemon dist/index.js\"",
     "build": "tsc --skipLibCheck && tsc-alias",
     "start": "node dist/index.js"
   }

@@ -32,7 +32,7 @@ const habitController = new HabitController({ habitRepository });
 
 const frontURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
-  : 'https://habits-tracker-dev.vercel.app';
+  : process.env.FRONT_URL_PROD;
 
   console.log(frontURL)
 

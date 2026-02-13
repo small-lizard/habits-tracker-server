@@ -10,9 +10,9 @@ const habitSchema = new Schema(
       required: true,
     },
     selectedColor: { type: String, required: true },
-    weeks: {
-      type: Object as () => Record<string, number[]>,
-      default: {},
+    days: {
+      type: Object as () => Record<string, number>,
+      default: () => ({})
     }
   });
 

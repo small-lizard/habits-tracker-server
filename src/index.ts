@@ -34,8 +34,6 @@ const frontURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
   : process.env.FRONT_URL_PROD;
 
-  console.log(frontURL)
-
 app.use(cors({
   origin: frontURL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -82,9 +80,17 @@ if (!port) {
 }
 
 mongoose.connect(mongoUrl)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  .then(() => {
+    console.log('✅ Connected to MongoDB')
 
+    app.get('/ping', (req, res) => res.send("ping"));
+
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+
+  })
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // USER ROUTES
 app.post('/auth', userController.addUser);
@@ -99,8 +105,3 @@ app.post('/habits/add', requireAuth, habitController.addHabit)
 app.post('/habits/update', requireAuth, habitController.updateHabit)
 app.delete('/habits/delete/:id', requireAuth, habitController.delete);
 app.get('/habits', requireAuth, habitController.getHabits);
-
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});

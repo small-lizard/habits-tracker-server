@@ -3,6 +3,9 @@ import { UserRepository } from "@repositories/UserRepository.js";
 import { Session } from "express-session";
 import { HabitRepository } from "@repositories/HabitRepository.js";
 import bcrypt from 'bcryptjs';
+import otpGenerator from "otp-generator";
+import { OtpModel } from "@models/otpSchema.js";
+import { sendVerificationEmail } from "../utils/sendVerificationEmail.js";
 
 type SessionRequest = Request & {
     session: Session & { userId?: string };
@@ -17,39 +20,82 @@ export class UserController {
     private userRepository: UserRepository;
     private habitRepository: HabitRepository;
 
+    private createUserSession = async (req: SessionRequest, userId: string) => {
+        const sessionReq = req as SessionRequest;
+        sessionReq.session.userId = userId;
+
+        await new Promise<void>((resolve, reject) => {
+            sessionReq.session.save(err => err ? reject(err) : resolve());
+        });
+    }
+
+    private async syncUserHabits(userId: string, habits?: any[]) {
+        if (habits?.length) {
+            await this.habitRepository.sync(userId, habits);
+        }
+    }
+
     constructor({ userRepository, habitRepository }: UserControllerDeps) {
         this.userRepository = userRepository;
         this.habitRepository = habitRepository;
     }
 
     public addUser = async (req: Request, res: Response) => {
-         const userData = {
+        const userData = {
             id: req.body.id,
             name: req.body.name,
             email: req.body.email,
-            password: req.body.password
+            password: req.body.password,
+            isVerified: false
         }
 
-        const existingUser = await this.userRepository.findUserByEmail(userData.email.toLowerCase());
-        if (existingUser) {
-            return res.status(400).json({ error: 'A user with this email already exists.' });
+        const isUserExist = await this.userRepository.findUserByEmail(userData.email.toLowerCase());
+        if (isUserExist) {
+            return res.status(400).json({ error: 'User is already registered' });
         }
 
         try {
             const user = await this.userRepository.addUser(userData);
 
-            const sessionReq = req as SessionRequest;
-            sessionReq.session.userId = user.id;
-
-            await new Promise<void>((resolve, reject) => {
-                sessionReq.session.save(err => err ? reject(err) : resolve());
+            const otp = otpGenerator.generate(6, {
+                upperCaseAlphabets: false,
+                lowerCaseAlphabets: false,
+                specialChars: false,
             });
 
-            const habits = req.body.habits;
+            await OtpModel.create({ email: user.email, code: otp });
 
-            if (habits?.length) {
-                await this.habitRepository.sync(user.id, habits);
-            }
+            await sendVerificationEmail(user.email, otp, user.name, req.body.savedLang);
+
+            res.status(200).json({ message: 'Verification code sent to email' });
+
+        } catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    public verifyEmail = async (req: Request, res: Response) => {
+        const { email, code, habits } = req.body;
+
+        const otpRecord = await OtpModel.findOne({ email, code });
+
+        if (!otpRecord) {
+            return res.status(400).json({ error: "Invalid or expired code" });
+        }
+
+        const user = await this.userRepository.findUserByEmail(email.toLowerCase());
+        if (!user) {
+            return res.status(401).json({ error: "A user with this email doesn't exists." });
+        }
+
+        try {
+            await this.userRepository.updateUserData(user.id, true);
+
+            await this.createUserSession(req, user.id);
+
+            await this.syncUserHabits(user.id, habits);
+
+            await OtpModel.deleteMany({ email });
 
             res.status(200).json({
                 message: 'User created and logged in',
@@ -57,7 +103,6 @@ export class UserController {
                 name: user.name,
                 email: user.email,
             });
-
         } catch (error) {
             res.status(500).json({ error: 'Internal server error' });
         }
@@ -74,24 +119,19 @@ export class UserController {
             return res.status(401).json({ error: "A user with this email doesn't exists." });
         }
 
-        const passwordCompare = await bcrypt.compare(user.password, existingUser.password);
-        if (!passwordCompare) {
+        const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ error: 'Incorrect password.' });
         }
 
+        if (!existingUser.isVerified) {
+            return res.status(403).json({ error: "Email is not verified. Please check your inbox." });
+        }
+
         try {
-            const sessionReq = req as SessionRequest;
-            sessionReq.session.userId = existingUser.id;
+            await this.createUserSession(req, existingUser.id);
 
-            await new Promise<void>((resolve, reject) => {
-                sessionReq.session.save(err => err ? reject(err) : resolve());
-            });
-
-            const habits = req.body.habits;
-
-            if (habits?.length) {
-                await this.habitRepository.sync(existingUser.id, habits);
-            }
+            await this.syncUserHabits(existingUser.id, req.body.habits);
 
             res.status(200).json({
                 message: 'Successful login',
@@ -162,21 +202,19 @@ export class UserController {
         const userId = (req as SessionRequest).session.userId;
 
         if (!userId) {
-            return res.json({ isAuth: false });
+            return res.status(200).json({ isAuth: false });
         }
 
         try {
             const user = await this.userRepository.findUserById(userId);
 
             if (!user) {
-                return res.json({ isAuth: false });
+                return res.status(200).json({ isAuth: false });
             }
 
-            res.json({ isAuth: true, userId, name: user.name, email: user.email });
+            res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email });
         } catch (err) {
-            res.json({ isAuth: false });
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 }
-
-

@@ -39,6 +39,12 @@ export class UserRepository {
         return updatedUser;
     }
 
+    public async updateUserData (id: string, isVerified: boolean) {
+        const updatedUser = await this.repository.update(id, { isVerified: isVerified });
+
+        return updatedUser;
+    }
+
     async delete(userId: string) {
         return this.repository.delete(userId);
     }

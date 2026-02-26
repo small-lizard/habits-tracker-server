@@ -12,6 +12,7 @@ import MongoStore from 'connect-mongo';
 import session from 'express-session';
 import dotenv from 'dotenv';
 import { requireAuth } from '@middlewares/authMiddleware.js';
+import { i18nInit } from "./i18n.js";
 dotenv.config();
 
 const app = express();
@@ -79,9 +80,16 @@ if (!port) {
   throw new Error('Incorrect port')
 }
 
-mongoose.connect(mongoUrl)
-  .then(() => {
-    console.log('✅ Connected to MongoDB')
+async function startServer() {
+  try {
+
+    await mongoose.connect(mongoUrl);
+    console.log('✅ Connected to MongoDB');
+
+    await i18nInit();
+    console.log('✅ i18next initialized');
+
+    app.use(express.json());
 
     app.get('/ping', (req, res) => res.send("ping"));
 
@@ -89,11 +97,16 @@ mongoose.connect(mongoUrl)
       console.log(`Server running on port ${port}`);
     });
 
-  })
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  } catch (err) {
+    console.error('❌ Server start error:', err);
+  }
+}
+
+startServer();
 
 // USER ROUTES
 app.post('/auth', userController.addUser);
+app.post('/verify-email', userController.verifyEmail);
 app.get('/auth/check', userController.checkIsAuth);
 app.post('/login', userController.login);
 app.post('/logout', userController.logout);

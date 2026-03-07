@@ -14,12 +14,15 @@ const userSchema = new Schema({
   isVerified: {
     type: Boolean,
     default: false,
-  }
+  },
+  blockedUntil: { type: Date, default: null }
 }, {
   versionKey: false,
 },);
 
-export type User = InferSchemaType<typeof userSchema>;
+export type User = Omit<InferSchemaType<typeof userSchema>, 'blockedUntil'> & {
+  blockedUntil: Date | null
+};
 
 export const UserModel = mongoose.model<User>('User', userSchema);
 

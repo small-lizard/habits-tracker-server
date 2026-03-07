@@ -4,8 +4,6 @@ import { mailSender } from "./mailSender.js";
 export const sendVerificationEmail = async (email: string, otp: string, name: string, userLang: string) => {
   const t = (key: string) => i18next.t(key, { lng: userLang });
 
-  console.log("userLang:", userLang);
-
   const html = `
  <table style="background:#4A64FD; padding:30px 0; font-family:Arial" cellpadding="0" cellspacing="0" width="100%">
                 <tr>

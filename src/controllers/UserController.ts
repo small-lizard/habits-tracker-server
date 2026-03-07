@@ -29,7 +29,7 @@ export class UserController {
         });
     }
 
-    private async syncUserHabits(userId: string, habits?: any[]) {
+    private syncUserHabits = async (userId: string, habits?: any[]) => {
         if (habits?.length) {
             await this.habitRepository.sync(userId, habits);
         }
@@ -46,16 +46,28 @@ export class UserController {
             name: req.body.name,
             email: req.body.email,
             password: req.body.password,
-            isVerified: false
+            isVerified: false,
+            blockedUntil: null
         }
 
         const isUserExist = await this.userRepository.findUserByEmail(userData.email.toLowerCase());
-        if (isUserExist) {
-            return res.status(400).json({ error: 'User is already registered' });
+        if (isUserExist && isUserExist.isVerified) {
+            return res.status(409).json({ code: "USER_ALREADY_EXISTS" });
+        }
+
+        if (isUserExist && isUserExist.blockedUntil && isUserExist.blockedUntil.getTime() > Date.now()) {
+            const secondsLeft = Math.ceil((isUserExist.blockedUntil.getTime() - Date.now()) / 1000);
+            return res
+                .status(429)
+                .set('Retry-After', String(secondsLeft))
+                .json({ error: "Too many attempts." });
         }
 
         try {
-            const user = await this.userRepository.addUser(userData);
+
+            const user = isUserExist && !isUserExist.isVerified
+                ? isUserExist
+                : await this.userRepository.addUser(userData);
 
             const otp = otpGenerator.generate(6, {
                 upperCaseAlphabets: false,
@@ -63,7 +75,12 @@ export class UserController {
                 specialChars: false,
             });
 
-            await OtpModel.create({ email: user.email, code: otp });
+            const salt = await bcrypt.genSalt(10);
+            const hashedOTP = await bcrypt.hash(otp, salt);
+
+            await OtpModel.deleteMany({ email: user.email });
+
+            await OtpModel.create({ email: user.email, code: hashedOTP, createdAt: new Date() });
 
             await sendVerificationEmail(user.email, otp, user.name, req.body.savedLang);
 
@@ -74,22 +91,66 @@ export class UserController {
         }
     }
 
+    public sendOTP = async (req: Request, res: Response) => {
+        const { email, name, savedLang } = req.body;
+
+        const otp = otpGenerator.generate(6, {
+            upperCaseAlphabets: false,
+            lowerCaseAlphabets: false,
+            specialChars: false,
+        });
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedOTP = await bcrypt.hash(otp, salt);
+
+        await OtpModel.deleteMany({ email: email });
+        await OtpModel.create({ email: email, code: hashedOTP, createdAt: new Date() });
+
+        await sendVerificationEmail(email, otp, name, savedLang);
+
+        res.status(200).json({ message: 'Verification code sent to email' });
+    }
+
     public verifyEmail = async (req: Request, res: Response) => {
         const { email, code, habits } = req.body;
 
-        const otpRecord = await OtpModel.findOne({ email, code });
-
-        if (!otpRecord) {
-            return res.status(400).json({ error: "Invalid or expired code" });
-        }
-
+        const otpRecord = await OtpModel.findOne({ email });
         const user = await this.userRepository.findUserByEmail(email.toLowerCase());
         if (!user) {
-            return res.status(401).json({ error: "A user with this email doesn't exists." });
+            return res.status(404).json({ code: "USER_NOT_FOUND_BY_EMAIL" });
+        }
+
+        if (user.blockedUntil && user.blockedUntil.getTime() > Date.now()) {
+            const secondsLeft = Math.ceil((user.blockedUntil.getTime() - Date.now()) / 1000);
+            return res
+                .status(429)
+                .set('Retry-After', String(secondsLeft))
+                .json({ error: "Too many attempts." });
+        }
+
+        if (!otpRecord || otpRecord.createdAt.getTime() + 5 * 60 * 1000 < Date.now()) {
+            return res.status(400).json({ code: "CODE_EXPIRED" });
+        }
+
+        const otpCompare = await bcrypt.compare(code, otpRecord.code);
+        if (!otpCompare) {
+            otpRecord.attempts += 1;
+
+            if (otpRecord.attempts >= 4) {
+                user.blockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+
+                await this.userRepository.updateUserData(user.id, { blockedUntil: user.blockedUntil });
+
+                otpRecord.attempts = 0;
+            }
+
+            await otpRecord.save();
+
+            return res.status(401).json({ code: "INVALID_VERIFICATION_CODE" });
         }
 
         try {
-            await this.userRepository.updateUserData(user.id, true);
+            await this.userRepository.updateUserData(user.id, { isVerified: true });
 
             await this.createUserSession(req, user.id);
 
@@ -116,16 +177,16 @@ export class UserController {
 
         const existingUser = await this.userRepository.findUserByEmail(user.email.toLowerCase());
         if (!existingUser) {
-            return res.status(401).json({ error: "A user with this email doesn't exists." });
+            return res.status(404).json({ code: "USER_NOT_FOUND_BY_EMAIL" });
         }
 
         const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: 'Incorrect password.' });
+            return res.status(401).json({ code: "INVALID_PASSWORD" });
         }
 
         if (!existingUser.isVerified) {
-            return res.status(403).json({ error: "Email is not verified. Please check your inbox." });
+            return res.status(403).json({ code: "EMAIL_NOT_VERIFIED" });
         }
 
         try {
@@ -150,12 +211,12 @@ export class UserController {
 
         const existingUser = await this.userRepository.findUserById(userId);
         if (!existingUser) {
-            return res.status(401).json({ error: 'User not found' });
+            return res.status(404).json({ code: "USER_NOT_FOUND" });
         }
 
         const passwordCompare = await bcrypt.compare(user.password, existingUser.password);
         if (!passwordCompare) {
-            return res.status(401).json({ error: 'Incorrect password.' });
+            return res.status(401).json({ code: "INVALID_PASSWORD" });
         }
 
         try {
@@ -171,7 +232,7 @@ export class UserController {
     public logout = async (req: Request, res: Response) => {
         req.session.destroy(err => {
             if (err) {
-                return res.status(500).json({ error: 'Logout failed' });
+                return res.status(500).json({ code: "LOGOUT_FAILED" });
             }
             res.clearCookie('connect.sid');
             res.json({ message: 'Successfully logged out' });

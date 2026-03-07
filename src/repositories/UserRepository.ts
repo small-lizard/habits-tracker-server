@@ -10,11 +10,11 @@ export class UserRepository {
     }
 
     public async findUserById(id: string) {
-        return await this.repository.find({id : id})
+        return await this.repository.find({ id: id })
     }
 
     public async findUserByEmail(email: string) {
-        return await this.repository.find({email: email})
+        return await this.repository.find({ email: email })
     }
 
     public async addUser(userData: User) {
@@ -39,8 +39,8 @@ export class UserRepository {
         return updatedUser;
     }
 
-    public async updateUserData (id: string, isVerified: boolean) {
-        const updatedUser = await this.repository.update(id, { isVerified: isVerified });
+    public async updateUserData(id: string, data: Partial<User>) {
+        const updatedUser = await this.repository.update(id, data);
 
         return updatedUser;
     }

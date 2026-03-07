@@ -21,6 +21,7 @@ const port = Number(process.env.PORT);
 const mongoUrl = process.env.MONGO_URL as string;
 const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
 
+
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
 const habitRepository = new HabitRepository(new MongoRepository<Habit>(HabitModel));
 
@@ -38,7 +39,8 @@ const frontURL = process.env.NODE_ENV === 'development'
 app.use(cors({
   origin: frontURL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Retry-After'],
 }));
 
 app.use(express.json());
@@ -106,6 +108,7 @@ startServer();
 
 // USER ROUTES
 app.post('/auth', userController.addUser);
+app.post('/auth/otp', userController.sendOTP);
 app.post('/verify-email', userController.verifyEmail);
 app.get('/auth/check', userController.checkIsAuth);
 app.post('/login', userController.login);

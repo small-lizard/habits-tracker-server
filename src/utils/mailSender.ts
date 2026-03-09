@@ -1,23 +1,13 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+import 'dotenv/config';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const mailSender = async (email: string, title: string, body: string) => {
-    const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: Number(process.env.SMTP_PORT) === 465,
-        service: 'gmail',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
-
-    const info = await transporter.sendMail({
-        from: `"Habit Tracker" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: title,
-        html: body,
-    });
-
-    return info;
+  await resend.emails.send({
+    from: "Habit Tracker <onboarding@resend.dev>",
+    to: email,
+    subject: title,
+    html: body,
+  });
 };

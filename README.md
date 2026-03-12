@@ -1,12 +1,12 @@
 # Habit Tracker
-Full-stack web application for tracking habits.
-This is the backend part of the project. The frontend can be found ([repo](https://github.com/small-lizard/habits-tracker)). The backend uses a layered architecture: controllers handle business logic and HTTP requests, repositories handle data storage and retrieval from the database, and MongoDB is accessed through an abstracted layer.
+Web application for tracking habits.
+This is the backend part of the project. The frontend can be found here ([repo](https://github.com/small-lizard/habits-tracker)). The backend uses a layered architecture: controllers handle business logic and HTTP requests, repositories handle data storage and retrieval from the database, and MongoDB is accessed through an abstracted layer.
 
 ## Tech Stack
 
-**Backend:** Node.js, Express, Resend, REST API, Session authentication
+**Backend:** Node.js, Express, REST API, Resend, Session authentication
 
-**Database:** MongoDB Atlas
+**Database:** MongoDB
 
 **Frontend:** React, TypeScript ([repo](https://github.com/small-lizard/habits-tracker)) 
 
@@ -24,6 +24,12 @@ src
 ```
 
 ## Run Locally
+
+### Requirements
+- Node.js ≥ 18
+- Docker / Docker Compose
+- npm
+  
 To run the backend locally, follow these steps.
 
 1. Clone the repository
@@ -52,7 +58,7 @@ RESEND_API_KEY=your_resend_api_key
 4. Start MongoDB with Docker
 The project uses Docker for running MongoDB locally.
 ```bash
-docker compose up -d
+docker-compose up -d
 ```
 
 5. Run the development server
@@ -62,13 +68,8 @@ npm run dev
 ```
 This command runs:
 - TypeScript compiler in watch mode
-- alias resolver (tsc-alias)
+- resolves TypeScript import aliases after compilation (tsc-alias)
 - server reload with nodemon
-
-### Requirements
-- Node.js ≥ 18
-- Docker / Docker Compose
-- npm
 
 ## API Endpoints
 Habit and account routes require authentication via session middleware.

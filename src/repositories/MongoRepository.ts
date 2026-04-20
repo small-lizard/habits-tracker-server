@@ -52,7 +52,6 @@ export class MongoRepository<T> implements IRepository<T> {
         return this.serialiseDocument(document);
     }
 
-
     async findById(id: string) {
         const document = await this.model.find({_id: id});
 

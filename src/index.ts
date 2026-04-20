@@ -12,6 +12,7 @@ import MongoStore from 'connect-mongo';
 import session from 'express-session';
 import dotenv from 'dotenv';
 import { requireAuth } from '@middlewares/authMiddleware.js';
+import { i18nInit } from "./i18n.js";
 dotenv.config();
 
 const app = express();
@@ -19,6 +20,7 @@ const app = express();
 const port = Number(process.env.PORT);
 const mongoUrl = process.env.MONGO_URL as string;
 const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
+
 
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
 const habitRepository = new HabitRepository(new MongoRepository<Habit>(HabitModel));
@@ -34,12 +36,11 @@ const frontURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
   : process.env.FRONT_URL_PROD;
 
-  console.log(frontURL)
-
 app.use(cors({
   origin: frontURL,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Retry-After'],
 }));
 
 app.use(express.json());
@@ -81,13 +82,34 @@ if (!port) {
   throw new Error('Incorrect port')
 }
 
-mongoose.connect(mongoUrl)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+async function startServer() {
+  try {
 
+    await mongoose.connect(mongoUrl);
+    console.log('✅ Connected to MongoDB');
+
+    await i18nInit();
+    console.log('✅ i18next initialized');
+
+    app.use(express.json());
+
+    app.get('/ping', (req, res) => res.send("ping"));
+
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+
+  } catch (err) {
+    console.error('❌ Server start error:', err);
+  }
+}
+
+startServer();
 
 // USER ROUTES
 app.post('/auth', userController.addUser);
+app.post('/auth/otp', userController.sendOTP);
+app.post('/verify-email', userController.verifyEmail);
 app.get('/auth/check', userController.checkIsAuth);
 app.post('/login', userController.login);
 app.post('/logout', userController.logout);
@@ -99,8 +121,3 @@ app.post('/habits/add', requireAuth, habitController.addHabit)
 app.post('/habits/update', requireAuth, habitController.updateHabit)
 app.delete('/habits/delete/:id', requireAuth, habitController.delete);
 app.get('/habits', requireAuth, habitController.getHabits);
-
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});

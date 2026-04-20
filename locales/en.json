@@ -1,0 +1,8 @@
+{
+  "email": {
+    "welcome": "Welcome to Habit Tracker, ",
+    "copyCode": "Copy and paste the temporary verification code to sign in.",
+    "ignoreIfNotYou": "If you didn't try to sign in, you can safely ignore this email.",
+    "subject": "Email Verification"
+  }
+}

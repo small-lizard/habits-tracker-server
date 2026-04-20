@@ -10,11 +10,11 @@ export class UserRepository {
     }
 
     public async findUserById(id: string) {
-        return await this.repository.find({id : id})
+        return await this.repository.find({ id: id })
     }
 
     public async findUserByEmail(email: string) {
-        return await this.repository.find({email: email})
+        return await this.repository.find({ email: email })
     }
 
     public async addUser(userData: User) {
@@ -35,6 +35,12 @@ export class UserRepository {
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         const updatedUser = await this.repository.update(id, { password: hashedPassword });
+
+        return updatedUser;
+    }
+
+    public async updateUserData(id: string, data: Partial<User>) {
+        const updatedUser = await this.repository.update(id, data);
 
         return updatedUser;
     }

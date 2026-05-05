@@ -1,7 +1,6 @@
 import mongoose, { InferSchemaType, Schema } from 'mongoose';
 
 const userSchema = new Schema({
-  id: { type: String, required: true },
   name: { type: String, required: true },
   email: {
     type: String,
@@ -10,18 +9,23 @@ const userSchema = new Schema({
     lowercase: true,
     match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   },
-  password: { type: String, required: true },
+  password: { type: String, default: null },
   isVerified: {
     type: Boolean,
     default: false,
   },
-  blockedUntil: { type: Date, default: null }
+  blockedUntil: { type: Date, default: null },
+
+  googleId: { type: String, default: null, sparse: true }
 }, {
   versionKey: false,
 },);
 
-export type User = Omit<InferSchemaType<typeof userSchema>, 'blockedUntil'> & {
-  blockedUntil: Date | null
+export type User = Omit<InferSchemaType<typeof userSchema>, 'blockedUntil' | 'googleId' | 'password'> & {
+  blockedUntil: Date | null;
+  googleId: string | null;
+  password: string | null;
+  id: string;
 };
 
 export const UserModel = mongoose.model<User>('User', userSchema);

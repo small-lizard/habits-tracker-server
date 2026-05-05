@@ -39,13 +39,13 @@ export class MongoRepository<T> implements IRepository<T> {
         return this.serialiseDocument(document);
     }
 
-    async save(data: T) {
+    async save(data: Omit<T, 'id'> & { id?: string }) {
+    
         const { id } = data as { id: string };
 
-        const dataInfo = {
-            ...data,
-            _id: id
-        }
+        const dataInfo = id
+            ? { ...data, _id: id }
+            : { ...data };
 
         const document = await this.model.create(dataInfo);
 
@@ -53,7 +53,7 @@ export class MongoRepository<T> implements IRepository<T> {
     }
 
     async findById(id: string) {
-        const document = await this.model.find({_id: id});
+        const document = await this.model.findById(id);
 
         return this.serialiseDocument(document);
     }

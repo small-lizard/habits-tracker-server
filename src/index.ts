@@ -13,6 +13,7 @@ import session from 'express-session';
 import dotenv from 'dotenv';
 import { requireAuth } from '@middlewares/authMiddleware.js';
 import { i18nInit } from "./i18n.js";
+import { UserService } from './services/userService.js';
 dotenv.config();
 
 const app = express();
@@ -21,12 +22,13 @@ const port = Number(process.env.PORT);
 const mongoUrl = process.env.MONGO_URL as string;
 const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
 
-
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
 const habitRepository = new HabitRepository(new MongoRepository<Habit>(HabitModel));
+const userService = new UserService({userRepository});
 
 const userController = new UserController({
   userRepository,
+  userService,
   habitRepository
 });
 
@@ -45,6 +47,12 @@ app.use(cors({
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  next();
+});
+
 const secret = process.env.SESSION_SECRET;
 
 if (!secret) {
@@ -62,7 +70,7 @@ app.use(session({
     collectionName: 'sessions',
   }),
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 3,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
     secure: process.env.NODE_ENV === 'development' ? false : true,
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
@@ -109,6 +117,7 @@ startServer();
 // USER ROUTES
 app.post('/auth', userController.addUser);
 app.post('/auth/otp', userController.sendOTP);
+app.post('/auth/google/callback', userController.googleAuthCallback);
 app.post('/verify-email', userController.verifyEmail);
 app.get('/auth/check', userController.checkIsAuth);
 app.post('/login', userController.login);

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { IRepository } from '@repositories/IRepository.js';
 import { User } from "@models/user.model.js";
+import mongoose from 'mongoose';
 
 export class UserRepository {
     private repository: IRepository<User>;
@@ -9,25 +10,24 @@ export class UserRepository {
         this.repository = repository;
     }
 
-    public async findUserById(id: string) {
-        return await this.repository.find({ id: id })
+    public async findUserById(id: any) {
+       return await this.repository.findById(id);
     }
 
     public async findUserByEmail(email: string) {
         return await this.repository.find({ email: email })
     }
 
-    public async addUser(userData: User) {
+    public async addUser(userData: Omit<User, 'id'>) {
         const { password, ...rest } = userData;
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password!, salt);
 
-        const newUser = {
+        return this.repository.save({
             ...rest,
+            id: new mongoose.Types.ObjectId().toString(),
             password: hashedPassword,
-        };
-
-        return this.repository.save(newUser);
+        });
     }
 
     public async changePassword(id: string, newPassword: string) {
@@ -46,6 +46,30 @@ export class UserRepository {
     }
 
     async delete(userId: string) {
+        
         return this.repository.delete(userId);
+    }
+
+    public async findByGoogleId(googleId: any) {
+
+        return await this.repository.find({ googleId: googleId })
+    }
+
+    public async attachGoogleId(userId: any, googleId: any) {
+        const updatedUser = await this.repository.update(userId, { googleId: googleId });
+
+        return updatedUser;
+    }
+
+    public async createOAuthUser(data: { name: string; email: string; googleId: string }) {
+
+        return this.repository.save({
+            name: data.name,
+            email: data.email,
+            googleId: data.googleId,
+            password: null,
+            isVerified: true,
+            blockedUntil: null,
+        });
     }
 }

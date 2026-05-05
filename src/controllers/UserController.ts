@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserRepository } from "@repositories/UserRepository.js";
+import { UserService } from "@services/UserService.js";
 import { Session } from "express-session";
 import { HabitRepository } from "@repositories/HabitRepository.js";
 import bcrypt from 'bcryptjs';
@@ -14,11 +15,13 @@ type SessionRequest = Request & {
 type UserControllerDeps = {
     userRepository: UserRepository;
     habitRepository: HabitRepository;
+    userService: UserService;
 };
 
 export class UserController {
     private userRepository: UserRepository;
     private habitRepository: HabitRepository;
+    private userService: UserService;
 
     private createUserSession = async (req: SessionRequest, userId: string) => {
         const sessionReq = req as SessionRequest;
@@ -35,19 +38,20 @@ export class UserController {
         }
     }
 
-    constructor({ userRepository, habitRepository }: UserControllerDeps) {
+    constructor({ userRepository, habitRepository, userService }: UserControllerDeps) {
         this.userRepository = userRepository;
         this.habitRepository = habitRepository;
+        this.userService = userService;
     }
 
     public addUser = async (req: Request, res: Response) => {
         const userData = {
-            id: req.body.id,
             name: req.body.name,
             email: req.body.email,
             password: req.body.password,
             isVerified: false,
-            blockedUntil: null
+            blockedUntil: null,
+            googleId: null
         }
 
         const isUserExist = await this.userRepository.findUserByEmail(userData.email.toLowerCase());
@@ -89,6 +93,30 @@ export class UserController {
         } catch (error) {
             res.status(500).json({ error: 'Internal server error' });
         }
+    }
+
+    public googleAuthCallback = async (req: Request, res: Response) => {
+        const code = req.body.code;
+        const habits = req.body.habits;
+        const user = await this.userService.handleGoogleCallback(code);
+
+        if (!user) {
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        if (!code) {
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        await this.createUserSession(req, user.id);
+        await this.syncUserHabits(user.id, habits);
+
+        res.status(200).json({
+            message: 'User logged in',
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+        });
     }
 
     public sendOTP = async (req: Request, res: Response) => {
@@ -180,7 +208,12 @@ export class UserController {
             return res.status(404).json({ code: "USER_NOT_FOUND_BY_EMAIL" });
         }
 
+        if (!existingUser.password) {
+            throw new Error('This account uses Google Sign In.');
+        }
+
         const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
+
         if (!isPasswordValid) {
             return res.status(401).json({ code: "INVALID_PASSWORD" });
         }
@@ -214,8 +247,12 @@ export class UserController {
             return res.status(404).json({ code: "USER_NOT_FOUND" });
         }
 
-        const passwordCompare = await bcrypt.compare(user.password, existingUser.password);
-        if (!passwordCompare) {
+        if (!existingUser.password) {
+            throw new Error('This account uses Google Sign In.');
+        }
+
+        const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ code: "INVALID_PASSWORD" });
         }
 
@@ -273,7 +310,9 @@ export class UserController {
                 return res.status(200).json({ isAuth: false });
             }
 
-            res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email });
+            const hasPassword = !!user.password;
+
+            res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
         } catch (err) {
             res.status(500).json({ error: 'Internal server error' });
         }

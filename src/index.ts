@@ -13,7 +13,7 @@ import session from 'express-session';
 import dotenv from 'dotenv';
 import { requireAuth } from '@middlewares/authMiddleware.js';
 import { i18nInit } from "./i18n.js";
-import { UserService } from './services/userService.js';
+import { UserService } from "@services/UserService.js";
 dotenv.config();
 
 const app = express();

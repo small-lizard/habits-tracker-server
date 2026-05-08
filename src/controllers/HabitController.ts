@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { HabitRepository } from "@repositories/HabitRepository.js";
+import { HabitRepository } from "../repositories/HabitRepository";
 import { Session } from "express-session";
 
 type SessionRequest = Request & {

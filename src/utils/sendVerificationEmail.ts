@@ -1,5 +1,5 @@
 import i18next from "i18next";
-import { mailSender } from "./mailSender.js";
+import { mailSender } from "./mailSender";
 
 export const sendVerificationEmail = async (email: string, otp: string, name: string, userLang: string) => {
   const t = (key: string) => i18next.t(key, { lng: userLang });

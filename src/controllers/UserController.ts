@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { UserRepository } from "@repositories/UserRepository.js";
-import { UserService } from "@services/UserService.js";
+import { UserRepository } from "../repositories/UserRepository";
 import { Session } from "express-session";
-import { HabitRepository } from "@repositories/HabitRepository.js";
+import { HabitRepository } from "../repositories/HabitRepository";
 import bcrypt from 'bcryptjs';
 import otpGenerator from "otp-generator";
-import { OtpModel } from "@models/otpSchema.js";
-import { sendVerificationEmail } from "../utils/sendVerificationEmail.js";
+import { OtpModel } from "../models/otpSchema";
+import { sendVerificationEmail } from "../utils/sendVerificationEmail";
+import { UserService } from "../services/UserService";
 
 type SessionRequest = Request & {
     session: Session & { userId?: string };
@@ -298,6 +298,13 @@ export class UserController {
 
     public checkIsAuth = async (req: Request, res: Response) => {
         const userId = (req as SessionRequest).session.userId;
+
+        console.log('📥 Cookies received:', req.cookies);
+        console.log('🔑 Session user:', userId);
+
+        if (!userId) {
+            console.log('❌ No session! Headers:', req.headers);
+        }
 
         if (!userId) {
             return res.status(200).json({ isAuth: false });

@@ -1,30 +1,41 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { UserModel, User } from '@models/user.model.js';
-import { HabitModel, Habit } from '@models/habit.model.js';
-import { UserController } from '@controllers/UserController.js';
-import { HabitController } from '@controllers/HabitController.js';
-import { UserRepository } from '@repositories/UserRepository.js';
-import { HabitRepository } from '@repositories/HabitRepository.js';
-import { MongoRepository } from '@repositories/MongoRepository.js';
+import { UserModel, User } from './models/user.model';
+import { HabitModel, Habit } from './models/habit.model';
+import { UserController } from './controllers/UserController';
+import { HabitController } from './controllers/HabitController';
+import { UserRepository } from './repositories/UserRepository';
+import { HabitRepository } from './repositories/HabitRepository';
+import { MongoRepository } from './repositories/MongoRepository';
 import MongoStore from 'connect-mongo';
 import session from 'express-session';
 import dotenv from 'dotenv';
-import { requireAuth } from '@middlewares/authMiddleware.js';
-import { i18nInit } from "./i18n.js";
-import { UserService } from "@services/UserService.js";
+import { requireAuth } from './middlewares/authMiddleware';
+import { i18nInit } from "./i18n";
+import { UserService } from './services/UserService';
+
 dotenv.config();
 
 const app = express();
 
 const port = Number(process.env.PORT);
 const mongoUrl = process.env.MONGO_URL as string;
-const host = process.env.RENDER_EXTERNAL_URL ?? 'http://localhost';
+
+if (!mongoUrl) throw new Error('Incorrect url for MongoDB');
+if (!port) throw new Error('Incorrect port');
+
+const secret = process.env.SESSION_SECRET;
+if (!secret) throw new Error('Secret not provided');
+
+const frontURL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : process.env.FRONT_URL_PROD;
+
 
 const userRepository = new UserRepository(new MongoRepository<User>(UserModel));
 const habitRepository = new HabitRepository(new MongoRepository<Habit>(HabitModel));
-const userService = new UserService({userRepository});
+const userService = new UserService({ userRepository });
 
 const userController = new UserController({
   userRepository,
@@ -33,10 +44,6 @@ const userController = new UserController({
 });
 
 const habitController = new HabitController({ habitRepository });
-
-const frontURL = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:3000'
-  : process.env.FRONT_URL_PROD;
 
 app.use(cors({
   origin: frontURL,
@@ -52,12 +59,6 @@ app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
   next();
 });
-
-const secret = process.env.SESSION_SECRET;
-
-if (!secret) {
-  throw new Error('Secret not provided')
-}
 
 app.set('trust proxy', 1);
 
@@ -76,45 +77,9 @@ app.use(session({
     sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
   },
   rolling: true,
-}))
+}));
 
-if (!mongoUrl) {
-  throw new Error('Incorrect url for MongoDB')
-}
-
-if (!host) {
-  throw new Error('Incorrect host url')
-}
-
-if (!port) {
-  throw new Error('Incorrect port')
-}
-
-async function startServer() {
-  try {
-
-    await mongoose.connect(mongoUrl);
-    console.log('✅ Connected to MongoDB');
-
-    await i18nInit();
-    console.log('✅ i18next initialized');
-
-    app.use(express.json());
-
-    app.get('/ping', (req, res) => res.send("ping"));
-
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
-
-  } catch (err) {
-    console.error('❌ Server start error:', err);
-  }
-}
-
-startServer();
-
-// USER ROUTES
+// AUTH ROUTES
 app.post('/auth', userController.addUser);
 app.post('/auth/otp', userController.sendOTP);
 app.post('/auth/google/callback', userController.googleAuthCallback);
@@ -126,7 +91,29 @@ app.put('/change-password', requireAuth, userController.changePassword);
 app.delete('/delete-account', requireAuth, userController.delete);
 
 // HABIT ROUTES
-app.post('/habits/add', requireAuth, habitController.addHabit)
-app.post('/habits/update', requireAuth, habitController.updateHabit)
+app.post('/habits/add', requireAuth, habitController.addHabit);
+app.post('/habits/update', requireAuth, habitController.updateHabit);
 app.delete('/habits/delete/:id', requireAuth, habitController.delete);
 app.get('/habits', requireAuth, habitController.getHabits);
+
+
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUrl);
+    console.log('✅ Connected to MongoDB');
+
+    await i18nInit();
+    console.log('✅ i18next initialized');
+
+    app.get('/ping', (req, res) => res.send("ping"));
+
+    app.listen(port, () => {
+      console.log(`✅ Server running on port ${port}`);
+    });
+  } catch (err) {
+    console.error('❌ Server start error:', err);
+    process.exit(1);
+  }
+}
+
+startServer();

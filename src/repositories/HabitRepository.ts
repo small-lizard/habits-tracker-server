@@ -1,5 +1,5 @@
-import { IRepository } from '@repositories/IRepository.js';
-import { Habit } from '@models/habit.model.js';
+import { IRepository } from './IRepository';
+import { Habit } from '../models/habit.model';
 
 export class HabitRepository {
 

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { IRepository } from '@repositories/IRepository.js';
-import { User } from "@models/user.model.js";
+import { IRepository } from '../repositories/IRepository';
+import { User } from "../models/user.model";
 import mongoose from 'mongoose';
 
 export class UserRepository {

@@ -1,4 +1,4 @@
-import { UserRepository } from "@repositories/UserRepository.js";
+import { UserRepository } from "../repositories/UserRepository";
 import { OAuth2Client } from 'google-auth-library';
 
 type UserServiceDeps = {
@@ -52,4 +52,3 @@ export class UserService {
         });
     }
 };
-

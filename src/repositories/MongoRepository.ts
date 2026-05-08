@@ -1,4 +1,4 @@
-import { IRepository } from '@repositories/IRepository.js';
+import { IRepository } from './IRepository';
 import { Document, Model } from 'mongoose';
 
 export class MongoRepository<T> implements IRepository<T> {

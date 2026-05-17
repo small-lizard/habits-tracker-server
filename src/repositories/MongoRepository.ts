@@ -30,7 +30,7 @@ export class MongoRepository<T> implements IRepository<T> {
     async find(query: Partial<T>) {
         const document = await this.model.findOne(query);
 
-        return this.serialiseDocument(document);
+        return document ? this.serialiseDocument(document) : null;
     }
 
     async getAll(userId: string) {

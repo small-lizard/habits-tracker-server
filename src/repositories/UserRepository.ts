@@ -25,7 +25,6 @@ export class UserRepository {
 
         return this.repository.save({
             ...rest,
-            id: new mongoose.Types.ObjectId().toString(),
             password: hashedPassword,
         });
     }

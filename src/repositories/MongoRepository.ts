@@ -39,15 +39,8 @@ export class MongoRepository<T> implements IRepository<T> {
         return this.serialiseDocument(document);
     }
 
-    async save(data: Omit<T, 'id'> & { id?: string }) {
-    
-        const { id } = data as { id: string };
-
-        const dataInfo = id
-            ? { ...data, _id: id }
-            : { ...data };
-
-        const document = await this.model.create(dataInfo);
+    async save(data: T | Omit<T, 'id'>) {
+        const document = await this.model.create(data);
 
         return this.serialiseDocument(document);
     }

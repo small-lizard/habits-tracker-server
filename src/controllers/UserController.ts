@@ -217,7 +217,7 @@ export class UserController {
         }
 
         if (!existingUser.password) {
-            throw new Error('This account uses Google Sign In.');
+            return res.status(404).json({ code: "USER_NOT_FOUND_BY_EMAIL" });
         }
 
         const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
@@ -307,8 +307,8 @@ export class UserController {
 
     public checkIsAuth = async (req: Request, res: Response) => {
         const userId = (req as SessionRequest).session.userId;
-        const userIdFromPayload = req.body.userId || req.query.userId;
-        const sessionIdFromPayload = req.body.sessionId || req.query.sessionId;
+        const userIdFromPayload = req.query.userId || req.body?.userId;
+        const sessionIdFromPayload = req.query.sessionId || req.body?.sessionId;
 
         if (!userId && !userIdFromPayload && !sessionIdFromPayload) {
             return res.status(200).json({ isAuth: false });

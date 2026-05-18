@@ -86,25 +86,6 @@ app.use(session({
   rolling: true,
 }))
 
-// USER ROUTES
-app.post('/auth', userController.addUser);
-app.post('/auth/otp', userController.sendOTP);
-app.post('/auth/google/callback', userController.googleAuthCallback);
-app.post('/verify-email', userController.verifyEmail);
-app.get('/auth/check', userController.checkIsAuth);
-app.post('/login', userController.login);
-app.post('/logout', userController.logout);
-app.put('/change-password', requireAuth(mongoose.connection), userController.changePassword);
-app.delete('/delete-account', requireAuth(mongoose.connection), userController.delete);
-
-// HABIT ROUTES
-app.post('/habits/add', requireAuth(mongoose.connection), habitController.addHabit)
-app.post('/habits/update', requireAuth(mongoose.connection), habitController.updateHabit)
-app.delete('/habits/delete/:id', requireAuth(mongoose.connection), habitController.delete);
-app.get('/habits', requireAuth(mongoose.connection), habitController.getHabits);
-
-app.get('/ping', (req, res) => res.send('ping'));
-
 async function startServer() {
   try {
 
@@ -113,6 +94,25 @@ async function startServer() {
 
     await i18nInit();
     console.log('✅ i18next initialized');
+
+    // USER ROUTES
+    app.post('/auth', userController.addUser);
+    app.post('/auth/otp', userController.sendOTP);
+    app.post('/auth/google/callback', userController.googleAuthCallback);
+    app.post('/verify-email', userController.verifyEmail);
+    app.get('/auth/check', userController.checkIsAuth);
+    app.post('/login', userController.login);
+    app.post('/logout', userController.logout);
+    app.put('/change-password', requireAuth(mongoose.connection), userController.changePassword);
+    app.delete('/delete-account', requireAuth(mongoose.connection), userController.delete);
+
+    // HABIT ROUTES
+    app.post('/habits/add', requireAuth(mongoose.connection), habitController.addHabit)
+    app.post('/habits/update', requireAuth(mongoose.connection), habitController.updateHabit)
+    app.delete('/habits/delete/:id', requireAuth(mongoose.connection), habitController.delete);
+    app.get('/habits', requireAuth(mongoose.connection), habitController.getHabits);
+
+    app.get('/ping', (req, res) => res.send('ping'));
 
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);

@@ -9,8 +9,8 @@ export type SessionRequest = Request & {
 export const requireAuth = (mongoConnection: Connection) =>
     async (req: SessionRequest, res: Response, next: NextFunction) => {
         const userIdFromCookie = req.session.userId;
-        const userIdFromPayload = req.body.userId || req.query.userId;
-        const sessionIdFromPayload = req.body.sessionId || req.query.sessionId;
+        const userIdFromPayload = req.query.userId || req.body?.userId;
+        const sessionIdFromPayload = req.query.sessionId || req.body?.sessionId;
 
         if (userIdFromCookie) {
             return next();
@@ -18,10 +18,11 @@ export const requireAuth = (mongoConnection: Connection) =>
 
         if (userIdFromPayload && sessionIdFromPayload) {
             try {
-
                 const session = await mongoConnection
                     .collection('sessions')
                     .findOne({ _id: sessionIdFromPayload });
+
+                console.log('session from db:', JSON.stringify(session));
 
                 if (session?.session?.userId === userIdFromPayload) {
                     req.session.userId = userIdFromPayload;

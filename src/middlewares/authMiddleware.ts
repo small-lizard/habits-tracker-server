@@ -4,6 +4,7 @@ import { Connection } from 'mongoose';
 
 export type SessionRequest = Request & {
     session: Session & { userId?: string };
+    userId?: string;
 };
 
 export const requireAuth = (mongoConnection: Connection) =>
@@ -22,10 +23,13 @@ export const requireAuth = (mongoConnection: Connection) =>
                     .collection('sessions')
                     .findOne({ _id: sessionIdFromPayload });
 
-                console.log('session from db:', JSON.stringify(session));
+                const sessionRaw = session?.session;
+                const sessionData = typeof sessionRaw === 'string'
+                    ? JSON.parse(sessionRaw)
+                    : sessionRaw;
 
-                if (session?.session?.userId === userIdFromPayload) {
-                    req.session.userId = userIdFromPayload;
+                if (sessionData?.userId === userIdFromPayload) {
+                    (req as SessionRequest).userId = userIdFromPayload as string;
                     return next();
                 }
             } catch (err) {

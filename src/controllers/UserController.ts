@@ -10,6 +10,7 @@ import { UserService } from "../services/UserService";
 
 type SessionRequest = Request & {
     session: Session & { userId?: string };
+    userId?: string;
 };
 
 type UserControllerDeps = {
@@ -249,7 +250,7 @@ export class UserController {
 
     public changePassword = async (req: Request, res: Response) => {
         const user = req.body;
-        const userId = (req as SessionRequest).session.userId as string;
+        const userId = ((req as SessionRequest).session.userId || (req as SessionRequest).userId) as string;
 
         const existingUser = await this.userRepository.findUserById(userId);
         if (!existingUser) {
@@ -286,7 +287,7 @@ export class UserController {
     }
 
     public delete = async (req: Request, res: Response) => {
-        const userId = (req as SessionRequest).session.userId as string;
+        const userId = ((req as SessionRequest).session.userId || (req as SessionRequest).userId) as string;
 
         try {
             await this.habitRepository.deleteAllByUserId(userId);
@@ -324,7 +325,7 @@ export class UserController {
 
                 const hasPassword = !!user.password;
 
-                res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
+                return res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
             }
 
             if (userIdFromPayload && sessionIdFromPayload) {

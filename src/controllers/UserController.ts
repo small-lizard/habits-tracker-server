@@ -27,8 +27,14 @@ export class UserController {
         const sessionReq = req as SessionRequest;
         sessionReq.session.userId = userId;
 
-        await new Promise<void>((resolve, reject) => {
-            sessionReq.session.save(err => err ? reject(err) : resolve());
+        return new Promise<string>((resolve, reject) => {
+            sessionReq.session.save(err => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(sessionReq.session.id);
+                }
+            });
         });
     }
 
@@ -108,7 +114,7 @@ export class UserController {
             return res.status(500).json({ error: 'Internal server error' });
         }
 
-        await this.createUserSession(req, user.id);
+        const sessionId = await this.createUserSession(req, user.id);
         await this.syncUserHabits(user.id, habits);
 
         res.status(200).json({
@@ -116,6 +122,7 @@ export class UserController {
             userId: user.id,
             name: user.name,
             email: user.email,
+            sessionId: sessionId,
         });
     }
 
@@ -180,7 +187,7 @@ export class UserController {
         try {
             await this.userRepository.updateUserData(user.id, { isVerified: true });
 
-            await this.createUserSession(req, user.id);
+            const sessionId = await this.createUserSession(req, user.id);
 
             await this.syncUserHabits(user.id, habits);
 
@@ -191,6 +198,7 @@ export class UserController {
                 userId: user.id,
                 name: user.name,
                 email: user.email,
+                sessionId: sessionId,
             });
         } catch (error) {
             res.status(500).json({ error: 'Internal server error' });
@@ -223,7 +231,7 @@ export class UserController {
         }
 
         try {
-            await this.createUserSession(req, existingUser.id);
+            const sessionId = await this.createUserSession(req, existingUser.id);
 
             await this.syncUserHabits(existingUser.id, req.body.habits);
 
@@ -231,7 +239,8 @@ export class UserController {
                 message: 'Successful login',
                 userId: existingUser.id,
                 name: existingUser.name,
-                email: existingUser.email
+                email: existingUser.email,
+                sessionId: sessionId,
             });
         } catch (error) {
             res.status(500).json({ error: 'Internal server error' });
@@ -298,28 +307,38 @@ export class UserController {
 
     public checkIsAuth = async (req: Request, res: Response) => {
         const userId = (req as SessionRequest).session.userId;
+        const userIdFromPayload = req.body.userId || req.query.userId;
+        const sessionIdFromPayload = req.body.sessionId || req.query.sessionId;
 
-        console.log('📥 Cookies received:', req.cookies);
-        console.log('🔑 Session user:', userId);
-
-        if (!userId) {
-            console.log('❌ No session! Headers:', req.headers);
-        }
-
-        if (!userId) {
+        if (!userId && !userIdFromPayload && !sessionIdFromPayload) {
             return res.status(200).json({ isAuth: false });
         }
 
         try {
-            const user = await this.userRepository.findUserById(userId);
+            if (userId) {
+                const user = await this.userRepository.findUserById(userId);
 
-            if (!user) {
-                return res.status(200).json({ isAuth: false });
+                if (!user) {
+                    return res.status(200).json({ isAuth: false });
+                }
+
+                const hasPassword = !!user.password;
+
+                res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
             }
 
-            const hasPassword = !!user.password;
+            if (userIdFromPayload && sessionIdFromPayload) {
+                const user = await this.userRepository.findUserById(userIdFromPayload);
 
-            res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
+                if (!user) {
+                    return res.status(200).json({ isAuth: false });
+                }
+
+                const hasPassword = !!user.password;
+
+                res.status(200).json({ isAuth: true, userId: userIdFromPayload, name: user.name, email: user.email, hasPassword: hasPassword });
+            }
+
         } catch (err) {
             res.status(500).json({ error: 'Internal server error' });
         }

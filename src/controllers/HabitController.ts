@@ -4,6 +4,7 @@ import { Session } from "express-session";
 
 type SessionRequest = Request & {
     session: Session & { userId?: string };
+    userId?: string;
 };
 
 export class HabitController {
@@ -14,7 +15,7 @@ export class HabitController {
     }
 
     public addHabit = async (req: Request, res: Response) => {
-        const userId = (req as SessionRequest).session.userId as string;
+        const userId = (req as SessionRequest).userId as string;
 
         try {
             const habit = await this.habitRepository.addHabit({
@@ -25,7 +26,7 @@ export class HabitController {
             res.status(201).json(habit);
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     };
 
@@ -36,7 +37,7 @@ export class HabitController {
             res.status(200).json(habit);
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
@@ -47,12 +48,12 @@ export class HabitController {
             res.status(200).json(habit);
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
     public getHabits = async (req: Request, res: Response) => {
-        const userId = (req as SessionRequest).session.userId as string;
+        const userId = (req as SessionRequest).userId as string;
 
         try {
             const habits = await this.habitRepository.getByUser(userId);
@@ -60,7 +61,7 @@ export class HabitController {
             res.status(200).json(habits);
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 }

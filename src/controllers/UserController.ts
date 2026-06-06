@@ -98,7 +98,7 @@ export class UserController {
             res.status(200).json({ message: 'Verification code sent to email' });
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
@@ -108,11 +108,11 @@ export class UserController {
         const user = await this.userService.handleGoogleCallback(code);
 
         if (!user) {
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json({ error: 'User not found' });
         }
 
         if (!code) {
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json({ error: 'Code is required' });
         }
 
         const sessionId = await this.createUserSession(req, user.id);
@@ -202,7 +202,7 @@ export class UserController {
                 sessionId: sessionId,
             });
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
@@ -244,13 +244,13 @@ export class UserController {
                 sessionId: sessionId,
             });
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
     public changePassword = async (req: Request, res: Response) => {
         const user = req.body;
-        const userId = ((req as SessionRequest).session.userId || (req as SessionRequest).userId) as string;
+        const userId = (req as SessionRequest).userId as string;
 
         const existingUser = await this.userRepository.findUserById(userId);
         if (!existingUser) {
@@ -272,7 +272,7 @@ export class UserController {
             res.status(200).json({ message: 'Password changed', userId: userId });
 
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error: error });
         }
     }
 
@@ -287,7 +287,7 @@ export class UserController {
     }
 
     public delete = async (req: Request, res: Response) => {
-        const userId = ((req as SessionRequest).session.userId || (req as SessionRequest).userId) as string;
+        const userId = (req as SessionRequest).userId as string;
 
         try {
             await this.habitRepository.deleteAllByUserId(userId);
@@ -302,46 +302,26 @@ export class UserController {
                 res.status(200).json({ message: 'Account deleted and logged out', userId: userId });
             });
         } catch (error) {
-            res.status(500).json({ error: 'Internal server error' });
+            res.status(500).json({ error : error });
         }
     }
 
     public checkIsAuth = async (req: Request, res: Response) => {
-        const userId = (req as SessionRequest).session.userId;
-        const userIdFromPayload = req.query.userId || req.body?.userId;
-        const sessionIdFromPayload = req.query.sessionId || req.body?.sessionId;
-
-        if (!userId && !userIdFromPayload && !sessionIdFromPayload) {
-            return res.status(200).json({ isAuth: false });
-        }
+        const userId = (req as SessionRequest).userId as string;
 
         try {
-            if (userId) {
-                const user = await this.userRepository.findUserById(userId);
+            const user = await this.userRepository.findUserById(userId);
 
-                if (!user) {
-                    return res.status(200).json({ isAuth: false });
-                }
-
-                const hasPassword = !!user.password;
-
-                return res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
+            if (!user) {
+                return res.status(200).json({ isAuth: false });
             }
 
-            if (userIdFromPayload && sessionIdFromPayload) {
-                const user = await this.userRepository.findUserById(userIdFromPayload);
+            const hasPassword = !!user.password;
 
-                if (!user) {
-                    return res.status(200).json({ isAuth: false });
-                }
+            return res.status(200).json({ isAuth: true, userId, name: user.name, email: user.email, hasPassword: hasPassword });
 
-                const hasPassword = !!user.password;
-
-                res.status(200).json({ isAuth: true, userId: userIdFromPayload, name: user.name, email: user.email, hasPassword: hasPassword });
-            }
-
-        } catch (err) {
-            res.status(500).json({ error: 'Internal server error' });
+        } catch (error) {
+            res.status(500).json({ error: error });
         }
     }
 }

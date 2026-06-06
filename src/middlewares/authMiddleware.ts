@@ -9,33 +9,41 @@ export type SessionRequest = Request & {
 
 export const requireAuth = (mongoConnection: Connection) =>
     async (req: SessionRequest, res: Response, next: NextFunction) => {
-        const userIdFromCookie = req.session.userId;
-        const userIdFromPayload = req.query.userId || req.body?.userId;
-        const sessionIdFromPayload = req.query.sessionId || req.body?.sessionId;
+        const cookieUserId = req.session?.userId;
+        const sessionId = req.headers["x-session-id"] as string | undefined;
 
-        if (userIdFromCookie) {
+        if (cookieUserId) {
+            req.userId = cookieUserId;
             return next();
         }
 
-        if (userIdFromPayload && sessionIdFromPayload) {
-            try {
-                const session = await mongoConnection
-                    .collection('sessions')
-                    .findOne({ _id: sessionIdFromPayload });
-
-                const sessionRaw = session?.session;
-                const sessionData = typeof sessionRaw === 'string'
-                    ? JSON.parse(sessionRaw)
-                    : sessionRaw;
-
-                if (sessionData?.userId === userIdFromPayload) {
-                    (req as SessionRequest).userId = userIdFromPayload as string;
-                    return next();
-                }
-            } catch (err) {
-                console.error('Session validation error:', err);
-            }
+        if (!cookieUserId && !sessionId) {
+            return res.status(401).json({ error: "Not logged in" });
         }
 
-        return res.status(401).json({ error: 'Not logged in' });
+        try {
+            const session = await mongoConnection
+                .collection<any>("sessions")
+                .findOne({ _id: sessionId });
+
+            if (!session) {
+                return res.status(401).json({ error: "Invalid session" });
+            }
+
+            if (new Date(session.expires) <= new Date()) {
+                return res.status(401).json({ error: "Session expired" });
+            }
+
+            const sessionData = JSON.parse(session.session);
+
+            if (!sessionData?.userId) {
+                return res.status(401).json({ error: "Invalid session data" });
+            }
+            req.userId = sessionData.userId;
+            return next();
+
+        } catch (error) {
+            console.error("Auth middleware error:", error);
+            return res.status(401).json({ error: "Not logged in" });
+        }
     };

@@ -57,6 +57,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
   exposedHeaders: ['Retry-After'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id'],
 }));
 
 app.use(express.json());
@@ -100,7 +101,7 @@ async function startServer() {
     app.post('/auth/otp', userController.sendOTP);
     app.post('/auth/google/callback', userController.googleAuthCallback);
     app.post('/verify-email', userController.verifyEmail);
-    app.get('/auth/check', userController.checkIsAuth);
+    app.get('/auth/check',requireAuth(mongoose.connection), userController.checkIsAuth);
     app.post('/login', userController.login);
     app.post('/logout', userController.logout);
     app.put('/change-password', requireAuth(mongoose.connection), userController.changePassword);
